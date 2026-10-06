@@ -17,7 +17,9 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Set SUBMODULES_TOKEN to a repo-scoped token with Contents and Pull requests write
+          # access when repository settings disallow GITHUB_TOKEN from opening pull requests.
+          token: ${{ secrets.SUBMODULES_TOKEN || secrets.GITHUB_TOKEN }}
 
       # Identity must be set BEFORE any operation that can create a commit.
       # `git submodule update --remote --merge` used to fail here with
@@ -64,4 +66,4 @@ jobs:
             --base main \
             --head "$BRANCH"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.SUBMODULES_TOKEN || secrets.GITHUB_TOKEN }}
