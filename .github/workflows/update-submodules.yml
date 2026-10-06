@@ -58,10 +58,26 @@ jobs:
           git add vendor/
           git commit -m "chore: update vendor submodules to latest upstream"
           git push origin "$BRANCH"
-          gh pr create \
+          if pr_output=$(gh pr create \
             --title "chore: update vendor submodules" \
             --body "Automated submodule update to the latest upstream commit on each submodule's tracked branch (see \`.gitmodules\`). Review the pointer diff before merging." \
             --base main \
-            --head "$BRANCH"
+            --head "$BRANCH" 2>&1); then
+            printf '%s\n' "$pr_output"
+          else
+            pr_status=$?
+            printf '%s\n' "$pr_output"
+            if [[ "$pr_output" == *"GitHub Actions is not permitted to create or approve pull requests"* ]]; then
+              compare_url="https://github.com/${GITHUB_REPOSITORY}/compare/main...${BRANCH}?expand=1"
+              echo "::warning::GitHub Actions cannot create pull requests in this repository. Create the submodule update PR manually: ${compare_url}"
+              {
+                echo "## Submodule update pushed; PR creation blocked"
+                echo "The branch \`${BRANCH}\` was pushed, but repository settings prevent GitHub Actions from creating pull requests."
+                echo "Create the PR manually: ${compare_url}"
+              } >> "$GITHUB_STEP_SUMMARY"
+            else
+              exit "$pr_status"
+            fi
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
